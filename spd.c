@@ -303,15 +303,11 @@ static const size_t parse_line(uint8_t data[SPD_SIZE_MAX], const char *line, boo
     return len;
 }
 
-bool spd_decode_i2cdump(SpdInfo *i, const char *dump)
+void spd_read_i2cdump(uint8_t data[SPD_SIZE_MAX], const char *dump)
 {
-    uint8_t data[SPD_SIZE_MAX];
-
     size_t offset = 0;
     while (dump[offset]) {
         bool verbose = false;
         offset += parse_line(data, dump + offset, verbose);
     }
-
-    return spd_decode(i, data);
 }

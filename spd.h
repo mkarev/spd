@@ -63,10 +63,9 @@ extern "C" {
 #endif
 
 bool spd_decode(SpdInfo *i, const uint8_t data[SPD_SIZE_MAX]);
+void spd_print(const SpdInfo* i, bool verbose);
 
-bool spd_decode_i2cdump(SpdInfo *i, const char *i2cdump);
-
-void spd_print(const SpdInfo *i, bool verbose);
+void spd_read_i2cdump(uint8_t data[SPD_SIZE_MAX], const char *i2cdump);
 
 #ifdef __cplusplus
 }

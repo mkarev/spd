@@ -27,6 +27,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 static const char i2cdump[] =
     "     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f    0123456789abcdef\n"
@@ -68,9 +70,20 @@ static const uint8_t spd_data[SPD_SIZE_MAX] = {
 
 int main (int argc, char *argv[])
 {
+    uint8_t data[SPD_SIZE_MAX];
+    spd_read_i2cdump(data, i2cdump);
+    if (memcmp(data, spd_data, sizeof(data))) {
+        printf("spd_read_i2cdump() failed\n");
+        exit(EXIT_FAILURE);
+    }
+
     SpdInfo i;
-    //spd_decode(&i, spd_data);
-    spd_decode_i2cdump(&i, i2cdump);
+    if (!spd_decode(&i, spd_data)) {
+        printf("spd_decode() failed\n");
+        exit(EXIT_FAILURE);
+    }
     spd_print(&i, false);
-    return 0;
+
+    printf("OK");
+    return EXIT_SUCCESS;
 }
