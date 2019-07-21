@@ -28,6 +28,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* How to get i2c dump:
+    $ sudo modprobe i2c-dev
+    $ sudo modprobe i2c-i801
+    $ sudo i2cdetect -l
+    ...
+    i2c-0   smbus           SMBus I801 adapter at f040              SMBus adapter
+    ...
+    $ sudo i2cdetect 0
+    ...
+    50: 50 -- 52 -- -- -- -- -- -- -- -- -- -- -- -- --
+    ...
+    $ sudo i2cdump 0 0x52 b
+*/
 static const char i2cdump[] =
     "     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f    0123456789abcdef\n"
     "00: 92 11 0b 03 04 21 00 09 03 11 01 08 0a 00 fe 00    ?????!.??????.?.\n"

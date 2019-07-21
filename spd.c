@@ -249,33 +249,31 @@ void spd_print(const SpdInfo *i, bool verbose)
             , i->CRC, i->CRC == i->CRC_real ? "OK" : "ERR"
         );
     } else {
+        bool gbytes = i->Module_Capacity >= 1024;
         printf(
-            "SPD Bytes used:                 %d bytes (%d)\n"
+            "SPD Bytes used/total:           %d/%d bytes (%d)\n"
             "DRAM Device Type:               %s (%d)\n"
             "Module Type:                    %s (%d)\n"
             "Module Minimum Nominal Voltage: %s (%d)\n"
-            "Module Capacity:                %d MBytes\n"
+            "Module Capacity:                %d %s\n"
             "Module Part Number:             %s\n"
             "CRC[0...%zd]:                   0x%04X %s\n"
-            , bytes_used(i), i->SPD_Bytes_Used
+            , bytes_used(i), bytes_total(i), i->SPD_Bytes_Used
             , device_name(i), i->DRAM_Device_Type
             , module_type(i), i->Module_Type
             , module_voltage(i), i->Module_Minimum_Nominal_Voltage
-            , i->Module_Capacity
+            , i->Module_Capacity / (gbytes ? 1024 : 1), gbytes ? "GB" : "MB"
             , i->Module_Part_Number
             , crc_size(i) - 1, i->CRC, i->CRC == i->CRC_real ? "OK" : "ERR"
         );
     }
 }
 
-static const size_t parse_line(uint8_t data[SPD_SIZE_MAX], const char *line, bool verbose)
+static const void parse_line(uint8_t data[SPD_SIZE_MAX], const char *line, size_t len)
 {
-    const char *eol = strstr(line, "\n");
-    size_t len = eol ? eol - line + 1 : strlen(line);
-    
     bool is_len_valid = (len >= 71);
     if (!is_len_valid) {
-        return len;
+        return;
     }
 
     // "b0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................\n"
@@ -289,23 +287,20 @@ static const size_t parse_line(uint8_t data[SPD_SIZE_MAX], const char *line, boo
         , x +12, x +13, x +14, x +15
     );
     if (tokens != 17 || address > (SPD_SIZE_MAX - 16)) {
-        return len;
+        return;
     }
     data += address;
-    if (verbose) printf("%02x: ", address);
     for (int n = 0; n < 16; n++) {
         data[n] = (uint8_t)x[n];
-        if (verbose) printf("%02x ", x[n]);
     }
-    if (verbose) printf("\n");
-    return len;
 }
 
 void spd_read_i2cdump(uint8_t data[SPD_SIZE_MAX], const char *dump)
 {
-    size_t offset = 0;
-    while (dump[offset]) {
-        bool verbose = false;
-        offset += parse_line(data, dump + offset, verbose);
+    while (dump[0]) {
+        const char* eol = strstr(dump, "\n");
+        size_t len = eol ? eol - dump + 1 : strlen(dump);
+        parse_line(data, dump, len);
+        dump += len;
     }
 }
