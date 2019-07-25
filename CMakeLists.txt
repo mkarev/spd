@@ -26,6 +26,7 @@ project("SPD")
 
 option (SPD_TESTS "SPD enable tests" ON)
 
+# spd library
 add_library(spd STATIC
     "spd.c"
     "spd.h"
@@ -41,6 +42,10 @@ target_compile_definitions(spd
 	PRIVATE
 	-D_CRT_SECURE_NO_WARNINGS
 )
+
+# spd crc calculator
+add_executable(spd-crc "spd_crc.c")
+target_link_libraries(spd-crc PRIVATE spd)
 
 if (SPD_TESTS)
     enable_testing()

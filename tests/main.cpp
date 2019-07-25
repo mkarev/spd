@@ -21,7 +21,7 @@
  * THE SOFTWARE.
  */
 
-#include "spd.h"
+#include <spd.h>
 
 #include <stdio.h>
 #include <stdint.h>

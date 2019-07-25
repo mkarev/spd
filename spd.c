@@ -200,7 +200,7 @@ bool spd_decode(SpdInfo *i, const uint8_t byte[SPD_SIZE_MAX])
 
     i->CRC_real = crc16(byte, crc_size(i));
     if (i->CRC != i->CRC_real) {
-        printf("CRC invalid: %d(spd) != %d(real)", i->CRC, i->CRC_real);
+        printf("CRC invalid: 0x%hx(spd) != 0x%hx(real)", i->CRC, i->CRC_real);
         return false;
     }
     return true;
