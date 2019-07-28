@@ -22,24 +22,20 @@
 
 cmake_minimum_required(VERSION 3.2)
 
-project("spd-tool")
+project("spd")
 
-option (SPD_TESTS "SPD enable tests" ON)
-
-add_subdirectory(spd)
-
-add_executable(spd-tool "spd_tool.c")
-target_link_libraries(spd-tool PRIVATE spd)
-if (MSVC)
-	target_compile_definitions(spd-tool
-        PRIVATE
-		-D_CRT_SECURE_NO_WARNINGS
-	)
-	add_subdirectory(getopt)
-	target_link_libraries(spd-tool PRIVATE getopt)
-endif (MSVC)
-
-if (SPD_TESTS)
-    enable_testing()
-    add_subdirectory(tests)
-endif (SPD_TESTS)
+add_library(spd STATIC
+    "spd.c"
+    "spd.h"
+)
+set_target_properties(spd PROPERTIES
+    C_STANDARD 99
+)
+target_include_directories(spd
+	PUBLIC
+	"${CMAKE_CURRENT_LIST_DIR}"
+)
+target_compile_definitions(spd
+	PRIVATE
+	-D_CRT_SECURE_NO_WARNINGS
+)

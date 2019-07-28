@@ -200,11 +200,41 @@ bool spd_decode(SpdInfo *i, const uint8_t byte[SPD_SIZE_MAX])
 
     i->CRC_real = crc16(byte, crc_size(i));
     if (i->CRC != i->CRC_real) {
-        printf("CRC invalid: 0x%hx(spd) != 0x%hx(real)", i->CRC, i->CRC_real);
+        //printf("CRC invalid: 0x%04x(spd) != 0x%04x(real)\n", i->CRC, i->CRC_real);
         return false;
     }
     return true;
 }
+
+bool spd_fix_crc(uint8_t byte[SPD_SIZE_MAX], SpdInfo *i)
+{
+    if (i->CRC == i->CRC_real) {
+        return false;
+    }
+    i->CRC = i->CRC_real;
+    byte[126] = (uint8_t)i->CRC_real;
+    byte[127] = (uint8_t)(i->CRC_real >> 8);
+    return true;
+}
+
+bool spd_enable_lp(uint8_t byte[SPD_SIZE_MAX], SpdInfo *i, bool enable)
+{
+    int VDD = byte[6] & 0b111;
+    if (enable) {
+        VDD |= 0b10;
+    } else {
+        VDD &= ~0b10;
+    }
+    if (VDD == i->Module_Minimum_Nominal_Voltage) {
+        return false;
+    }
+    i->Module_Minimum_Nominal_Voltage = VDD;
+    byte[6] = (uint8_t)VDD;
+    i->CRC_real = crc16(byte, crc_size(i));
+    spd_fix_crc(byte, i);
+    return true;
+}
+
 
 void spd_print(const SpdInfo *i, bool verbose)
 {
@@ -227,7 +257,7 @@ void spd_print(const SpdInfo *i, bool verbose)
             "Bus width extension:            %d (%d)\n"
             "Module Capacity:                %d MBytes\n"
             "Module Part Number:             %s\n"
-            "CRC:                            0x%04X %s\n"
+            "CRC:                            0x%04x %s\n"
             , crc_size(i) - 1, i->CRC_Coverage
             , bytes_total(i), i->SPD_Bytes_Total
             , bytes_used(i), i->SPD_Bytes_Used
@@ -257,7 +287,7 @@ void spd_print(const SpdInfo *i, bool verbose)
             "Module Minimum Nominal Voltage: %s (%d)\n"
             "Module Capacity:                %d %s\n"
             "Module Part Number:             %s\n"
-            "CRC[0...%zd]:                   0x%04X %s\n"
+            "CRC[0...%zd]:                   0x%04x %s\n"
             , bytes_used(i), bytes_total(i), i->SPD_Bytes_Used
             , device_name(i), i->DRAM_Device_Type
             , module_type(i), i->Module_Type

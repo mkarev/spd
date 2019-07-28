@@ -1,5 +1,5 @@
 /* The MIT License (MIT)
- *
+ * 
  * Copyright (c) 2019 Mikhail Karev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,40 +21,53 @@
  * THE SOFTWARE.
  */
 
-#include <spd.h>
+#pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-static void print_usage()
+#define SPD_SIZE_MAX 256
+
+typedef struct SpdInfo
 {
-    printf(
-        "Usage:\n"
-        "  spd-scr eeprom_dump.bin\n"
-    );
+    bool CRC_Coverage;
+    int SPD_Bytes_Total;
+    int SPD_Bytes_Used;
+    struct {
+        int Encoding_Level;
+        int Additions_Level;
+    } SPD_Revision;
+    int DRAM_Device_Type;
+    int Module_Type;
+    int Total_SDRAM_capacity;
+    int Bank_Address_Bits;
+    int Row_Address_Bits;
+    int Column_Address_Bits;
+    int Module_Minimum_Nominal_Voltage;
+    int SDRAM_Device_Width;
+    int Number_of_Ranks;
+    int Primary_bus_width;
+    int Bus_width_extension;
+    int Module_Capacity;
+    char Module_Part_Number[145 - 128 + 1 + 1];
+
+    int CRC;
+    int CRC_real;
+} SpdInfo;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+bool spd_decode(SpdInfo *i, const uint8_t data[SPD_SIZE_MAX]);
+void spd_print(const SpdInfo* i, bool verbose);
+
+bool spd_fix_crc(uint8_t data[SPD_SIZE_MAX], SpdInfo *i);
+bool spd_enable_lp(uint8_t byte[SPD_SIZE_MAX], SpdInfo *i, bool enable);
+
+void spd_read_i2cdump(uint8_t data[SPD_SIZE_MAX], const char *i2cdump);
+
+#ifdef __cplusplus
 }
-
-int main(int argc, char* argv[])
-{
-    if (argc != 2) {
-        print_usage();
-        return EXIT_FAILURE;
-    }
-
-    FILE* dump = fopen(argv[1], "rb");
-    if (!dump) {
-        printf("Can't open dump: %s\n", argv[1]);
-        return EXIT_FAILURE;
-    }
-    uint8_t data[SPD_SIZE_MAX];
-    if (sizeof(data) == fread(data, 1, sizeof(data), dump)) {
-        SpdInfo i;
-        if (spd_decode(&i, data)) {
-            spd_print(&i, false);
-        }
-    }
-    fclose(dump);
-
-    return EXIT_SUCCESS;
-}
+#endif
