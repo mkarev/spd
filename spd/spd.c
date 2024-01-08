@@ -1,6 +1,6 @@
 /* The MIT License (MIT)
  *
- * Copyright (c) 2019 Mikhail Karev
+ * Copyright (c) 2024 Mikhail Karev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
  * THE SOFTWARE.
  */
 
-#include "spd.h"
+#include <spd/spd.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -308,7 +308,7 @@ static const void parse_line(uint8_t data[SPD_SIZE_MAX], const char *line, size_
 
     // "b0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................\n"
 
-    int address, x[16];
+    int address = 0, x[16] = {0};
     int tokens = sscanf(line, "%x: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x"
         , &address
         , x + 0, x + 1, x + 2, x + 3
@@ -325,7 +325,7 @@ static const void parse_line(uint8_t data[SPD_SIZE_MAX], const char *line, size_
     }
 }
 
-void spd_read_i2cdump(uint8_t data[SPD_SIZE_MAX], const char *dump)
+void spd_parse_i2cdump(uint8_t data[SPD_SIZE_MAX], const char *dump)
 {
     while (dump[0]) {
         const char* eol = strstr(dump, "\n");

@@ -8,5 +8,9 @@ add_library (getopt STATIC
 )
 target_include_directories(getopt
     PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}
+)
+target_compile_definitions(getopt
+	PRIVATE
+		_CRT_SECURE_NO_WARNINGS
 )

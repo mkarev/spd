@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # 
-# Copyright (c) 2024 Mikhail Karev
+# Copyright (c) 2019 Mikhail Karev
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,19 +22,25 @@
 
 cmake_minimum_required(VERSION 3.2)
 
-# Test app
-add_executable(tests
-    "main.cpp"
-)
-set_target_properties(tests PROPERTIES
-    C_STANDARD 99
-    CXX_STANDARD 11
-)
-target_compile_definitions(tests
-	PRIVATE
-	    -D_CRT_SECURE_NO_WARNINGS
-)
-target_link_libraries(tests spd)
+project("io")
 
-# Tests
-add_test(NAME "MainTest" COMMAND tests)
+add_library(io STATIC
+    "include/io/io.h"
+    "io.c"
+)
+if (WIN32)
+	target_sources(io PRIVATE "win32/ch341.c")
+	target_link_libraries(io PUBLIC kernel32)
+endif (WIN32)
+set_target_properties(io
+	PROPERTIES
+		C_STANDARD 99
+)
+target_include_directories(io
+	PUBLIC
+		${CMAKE_CURRENT_LIST_DIR}/include
+)
+target_compile_definitions(io
+	PRIVATE
+		_CRT_SECURE_NO_WARNINGS
+)

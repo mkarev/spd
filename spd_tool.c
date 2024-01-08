@@ -1,6 +1,6 @@
 /* The MIT License (MIT)
  *
- * Copyright (c) 2019 Mikhail Karev
+ * Copyright (c) 2024 Mikhail Karev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,20 +21,23 @@
  * THE SOFTWARE.
  */
 
-#include <spd.h>
+#include <spd/spd.h>
+#include <io/io.h>
 
 #include <getopt.h>
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 
 enum Options {
+    OP_DEVICE = 'd',
     OP_INPUT = 'i',
     OP_OUTPUT = 'o',
-    OP_VERBOSE = 'V',
+    OP_VERBOSE = 'v',
     OP_HELP = 'h',
 
     OP_SET_LP = 'z' + 1,
@@ -44,6 +47,8 @@ enum Options {
 
 typedef struct Args
 {
+    bool use_i2c;
+    int device_id;
     const char* in_file;
     const char* out_file;
     bool set_lp;
@@ -59,28 +64,38 @@ static void print_usage()
         "Usage:\n"
         "    spd-tool OPTIONS\n\n"
         "OPTIONS:\n"
+        "    --device,-d [DEVICE_ID]\n"
+        "        I2C device for reading SPD directly from SO-DIMM module.\n"
+        "        DEVICE_ID - optional zero-based device id, default 0\n"
         "    --input,-i INPUT_FILE\n"
-        "        Input EEPROM binary dump\n"
+        "        An input EEPROM binary file if the device is unspecified.\n"
+        "        An original EEPROM dump file if the device is specified.\n"
         "    --output,-o OUTPUT_FILE\n"
-        "        Output EEPROM binary dump\n"
+        "        An output EEPROM binary file if the device is unspecified.\n"
+        "        A modified EEPROM dump file if the device is specified.\n"
         "    --set-lp\n"
         "        Set low power mode\n"
         "        Module minimum nominal voltage 1.35 V\n"
+        "    --reset-lp\n"
+        "        Reset low power mode\n"
+        "        Module minimum nominal voltage 1.35 V\n"
         "     --fix-crc\n"
         "        Fix CRC checksum\n"
-        "    --verbose, -v\n"
+        "    --verbose,-v\n"
         "        Verbose output\n"
-        "    --help, -h\n"
+        "    --help,-h\n"
         "        Print this message\n\n"
         "EXAMPLES\n"
         "    Print detailed SPD info\n"
-        "        spd-tool -i dump.bin -V\n"
+        "        spd-tool -i dump.bin -v\n"
         "    Fix incorrect CRC checksum and save result to the same file\n"
         "        spd-tool -i dump.bin --fix-crc -o dump.bin\n"
         "    Convert DDR3 to LP-DDR3\n"
         "        spd-tool -i dump_1.5v.bin --set-lp -o dump_1.35v.bin\n"
         "    Convert LP-DDR3 to DDR3\n"
         "        spd-tool -i dump_lp-ddr.bin --reset-lp -o dump_ddr.bin\n"
+        "    Convert LP-DDR3 to DDR3 via CH341 programmer\n"
+        "        spd-tool -d --reset-lp\n"
     );
 }
 
@@ -93,6 +108,7 @@ static void parse_args(Args *args, int argc, char* argv[])
     memset(args, 0, sizeof(*args));
     while (true) {
         static struct option options[] = {
+            { "device",             optional_argument, 0, OP_DEVICE },
             { "input",              required_argument, 0, OP_INPUT },
             { "output",             required_argument, 0, OP_OUTPUT },
             { "set-lp",             no_argument,       0, OP_SET_LP },
@@ -103,11 +119,20 @@ static void parse_args(Args *args, int argc, char* argv[])
             { 0, 0, 0, 0 }
         };
         int index = 0;
-        int c = getopt_long(argc, argv, "i:o:Vh", options, &index);
+        int c = getopt_long(argc, argv, "di:o:vh", options, &index);
         if (c == -1) {
             break;
         }
         switch (c) {
+            case OP_DEVICE:
+                args->use_i2c = io_i2c_init();
+                if (!args->use_i2c) {
+                    printf("I2C driver isn't available\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (optarg)
+                    args->device_id = atoi(optarg);
+                break;
             case OP_INPUT:
                 args->in_file = optarg;
                 break;
@@ -130,11 +155,13 @@ static void parse_args(Args *args, int argc, char* argv[])
                 print_usage(argv);
                 exit(EXIT_SUCCESS);
             default:
+                printf("Incorrect option --%s: %s\n", options[index].name, optarg);
                 exit(EXIT_FAILURE);
         }
     }
-    if (!args->in_file) {
-        printf("Input file is a required agrument: --input,-i\n");
+
+    if (!args->in_file && !args->use_i2c) {
+        printf("SPD source is undefined\n");
         exit(EXIT_FAILURE);
     }
     if (args->set_lp && args->reset_lp) {
@@ -143,70 +170,89 @@ static void parse_args(Args *args, int argc, char* argv[])
     }
 }
 
-bool read_input(const Args *args, uint8_t *data, size_t size)
+void print_hex(uint8_t *data, size_t size)
 {
-    FILE *f = fopen(args->in_file, "rb");
-    if (!f) {
-        printf("Can't open input file: %s\n", args->in_file);
-        return false;
+    const size_t step = 16;
+    printf("        ");
+    for (size_t n = 0; n < step; n++)
+        printf(" %02llx", n);
+    printf("\n");
+    for (size_t offset = 0; offset < size; offset += step) {
+        printf("%08llx", offset);
+        for (size_t n = 0; n < step; n++)
+            printf(" %02x", data[offset + n]);
+        printf("\n");
     }
-    if (size != fread(data, 1, size, f)) {
-        printf("Input file too small\n");
-        fclose(f);
-        return false;
-    }
-    fclose(f);
-    return true;
-}
-
-bool write_output(const Args *args, uint8_t* data, size_t size)
-{
-    FILE* f = fopen(args->out_file, "wb");
-    if (!f) {
-        printf("Can't open output file: %s\n", args->out_file);
-        return false;
-    }
-    if (size != fwrite(data, 1, size, f)) {
-        printf("Can't write output file\n");
-        fclose(f);
-        return false;
-    }
-    fclose(f);
-    return true;
 }
 
 static bool run_tool(const Args *args)
 {
     uint8_t spd_data[SPD_SIZE_MAX];
-    if (!read_input(args, spd_data, sizeof(spd_data))) {
-        printf("Read input file failed\n");
-        return false;
+    if (args->use_i2c) {
+        if (!io_i2c_read(args->device_id, spd_data, sizeof(spd_data))) {
+            printf("Read I2C device-%d failed\n", args->device_id);
+            return false;
+        }
     }
-    bool data_changed = false;
+    if (args->in_file) {
+        if (args->use_i2c) {
+            if (!io_file_write(args->in_file, spd_data, sizeof(spd_data)))
+                return false;
+        } else {
+            if (!io_file_read(args->in_file, spd_data, sizeof(spd_data)))
+                return false;
+        }
+    }
 
     SpdInfo i;
     spd_decode(&i, spd_data);
-    printf("Input:\n"); spd_print(&i, args->verbose); printf("\n");
 
+    if (args->verbose) {
+        print_hex(spd_data, sizeof(spd_data));
+        printf("\n");
+    }
+    printf("SPD:\n");
+    spd_print(&i, args->verbose);
+    printf("\n");
+
+    bool is_spd_changed = false;
     if (args->fix_crc) {
-        printf("Fix CRC\n");
-        data_changed |= spd_fix_crc(spd_data, &i);
+        if (spd_fix_crc(spd_data, &i)) {
+            is_spd_changed = true;
+            printf("CRC was fixed\n");
+        }
     }
     if (args->set_lp) {
-        printf("Set LP-DDR\n");
-        data_changed |= spd_enable_lp(spd_data, &i, true);
-    } else if (args->reset_lp) {
-        printf("Reset LP-DDR\n");
-        data_changed |= spd_enable_lp(spd_data, &i, false);
+        if (spd_enable_lp(spd_data, &i, true)) {
+            is_spd_changed = true;
+            printf("LP-DDR was set\n");
+        }
+    }
+    if (args->reset_lp) {
+        if (spd_enable_lp(spd_data, &i, false)) {
+            is_spd_changed = true;
+            printf("LP-DDR was reseted\n");
+        }
     }
 
-    if (data_changed) {
-        printf("\nOutput:\n"); spd_print(&i, args->verbose);
+    if (is_spd_changed) {
+        printf("Modified SPD:\n");
+        spd_print(&i, args->verbose);
+        printf("\n");
+        if (args->verbose)
+            print_hex(spd_data, sizeof(spd_data));
+        printf("\n");
     }
 
     if (args->out_file) {
-        if (!write_output(args, spd_data, sizeof(spd_data))) {
+        if (!io_file_write(args->out_file, spd_data, sizeof(spd_data))) {
             printf("Write output file failed\n");
+            return false;
+        }
+    }
+    if (args->use_i2c && is_spd_changed) {
+        if (!io_i2c_write(args->device_id, spd_data, sizeof(spd_data))) {
+            printf("Write I2C device-%d failed\n", args->device_id);
             return false;
         }
     }

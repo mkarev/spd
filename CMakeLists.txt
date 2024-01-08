@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # 
-# Copyright (c) 2019 Mikhail Karev
+# Copyright (c) 2024 Mikhail Karev
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,18 @@ project("spd-tool")
 
 option (SPD_TESTS "SPD enable tests" ON)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "_cmake")
+
 add_subdirectory(spd)
+add_subdirectory(io)
 
 add_executable(spd-tool "spd_tool.c")
-target_link_libraries(spd-tool PRIVATE spd)
+target_link_libraries(spd-tool PRIVATE spd io)
 if (MSVC)
 	target_compile_definitions(spd-tool
         PRIVATE
-		-D_CRT_SECURE_NO_WARNINGS
+			_CRT_SECURE_NO_WARNINGS
 	)
 	add_subdirectory(getopt)
 	target_link_libraries(spd-tool PRIVATE getopt)

@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # 
-# Copyright (c) 2019 Mikhail Karev
+# Copyright (c) 2024 Mikhail Karev
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +25,18 @@ cmake_minimum_required(VERSION 3.2)
 project("spd")
 
 add_library(spd STATIC
+    "include/spd/spd.h"
     "spd.c"
-    "spd.h"
 )
-set_target_properties(spd PROPERTIES
-    C_STANDARD 99
+set_target_properties(spd
+	PROPERTIES
+		C_STANDARD 99
 )
 target_include_directories(spd
 	PUBLIC
-	"${CMAKE_CURRENT_LIST_DIR}"
+		${CMAKE_CURRENT_LIST_DIR}/include
 )
 target_compile_definitions(spd
 	PRIVATE
-	-D_CRT_SECURE_NO_WARNINGS
+		_CRT_SECURE_NO_WARNINGS
 )
