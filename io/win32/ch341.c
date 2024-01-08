@@ -122,7 +122,7 @@ static INIT_ONCE g_once = INIT_ONCE_STATIC_INIT;
 
 static BOOL CALLBACK InitCH341(PINIT_ONCE InitOnce, PVOID Parameter, PVOID *lpContext)
 {
-    HMODULE lib = LoadLibrary("CH341DLLA64.DLL");
+    HMODULE lib = LoadLibraryA("CH341DLLA64.DLL");
     if (!lib) {
         DWORD err = GetLastError();
         printf("LoadLibraryA failed: %u\n", err);
