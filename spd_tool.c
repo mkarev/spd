@@ -40,8 +40,8 @@ enum Options {
     OP_VERBOSE = 'v',
     OP_HELP = 'h',
 
-    OP_SET_LP = 'z' + 1,
-    OP_RESET_LP,
+    OP_SET_LV = 'z' + 1,
+    OP_RESET_LV,
     OP_FIX_CRC
 };
 
@@ -51,8 +51,8 @@ typedef struct Args
     int device_id;
     const char* in_file;
     const char* out_file;
-    bool set_lp;
-    bool reset_lp;
+    bool set_lv;
+    bool reset_lv;
     bool fix_crc;
     bool verbose;
 } Args;
@@ -73,10 +73,10 @@ static void print_usage()
         "    --output,-o OUTPUT_FILE\n"
         "        An output EEPROM binary file if the device is unspecified.\n"
         "        A modified EEPROM dump file if the device is specified.\n"
-        "    --set-lp\n"
+        "    --set-lv\n"
         "        Set low voltage flag\n"
         "        Module minimum nominal voltage 1.35 V\n"
-        "    --reset-lp\n"
+        "    --reset-lv\n"
         "        Reset low voltage flag\n"
         "        Module minimum nominal voltage 1.35 V\n"
         "     --fix-crc\n"
@@ -91,11 +91,11 @@ static void print_usage()
         "    Fix incorrect CRC checksum and save result to the same file\n"
         "        spd-tool -i dump.bin --fix-crc -o dump.bin\n"
         "    Convert DDR3 to DDR3L\n"
-        "        spd-tool -i DDR3.bin --set-lp -o DDR3L.bin\n"
+        "        spd-tool -i DDR3.bin --set-lv -o DDR3L.bin\n"
         "    Convert DDR3L to DDR3\n"
-        "        spd-tool -i DDR3L.bin --reset-lp -o DDR3.bin\n"
+        "        spd-tool -i DDR3L.bin --reset-lv -o DDR3.bin\n"
         "    Convert DDR3L to DDR3 via CH341 programmer\n"
-        "        spd-tool -d --reset-lp\n"
+        "        spd-tool -d --reset-lv\n"
     );
 }
 
@@ -111,8 +111,8 @@ static void parse_args(Args *args, int argc, char* argv[])
             { "device",             optional_argument, 0, OP_DEVICE },
             { "input",              required_argument, 0, OP_INPUT },
             { "output",             required_argument, 0, OP_OUTPUT },
-            { "set-lp",             no_argument,       0, OP_SET_LP },
-            { "reset-lp",           no_argument,       0, OP_RESET_LP },
+            { "set-lv",             no_argument,       0, OP_SET_LV },
+            { "reset-lv",           no_argument,       0, OP_RESET_LV },
             { "fix-crc",            no_argument,       0, OP_FIX_CRC },
             { "verbose",            no_argument,       0, OP_VERBOSE },
             { "help",               no_argument,       0, OP_HELP },
@@ -139,11 +139,11 @@ static void parse_args(Args *args, int argc, char* argv[])
             case OP_OUTPUT:
                 args->out_file = optarg;
                 break;
-            case OP_SET_LP:
-                args->set_lp = true;
+            case OP_SET_LV:
+                args->set_lv = true;
                 break;
-            case OP_RESET_LP:
-                args->reset_lp = true;
+            case OP_RESET_LV:
+                args->reset_lv = true;
                 break;
             case OP_FIX_CRC:
                 args->fix_crc = true;
@@ -164,8 +164,8 @@ static void parse_args(Args *args, int argc, char* argv[])
         printf("SPD source is undefined\n");
         exit(EXIT_FAILURE);
     }
-    if (args->set_lp && args->reset_lp) {
-        printf("Options --set-lp and --reset-lp are mutually exclusive\n");
+    if (args->set_lv && args->reset_lv) {
+        printf("Options --set-lv and --reset-lv are mutually exclusive\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -222,21 +222,21 @@ static bool run_tool(const Args *args)
             printf("CRC was fixed\n");
         }
     }
-    if (args->set_lp) {
+    if (args->set_lv) {
         if (spd_enable_lp(spd_data, &i, true)) {
             is_spd_changed = true;
-            printf("LP-DDR was set\n");
+            printf("Low-Voltage flag was set\n");
         }
     }
-    if (args->reset_lp) {
+    if (args->reset_lv) {
         if (spd_enable_lp(spd_data, &i, false)) {
             is_spd_changed = true;
-            printf("LP-DDR was reseted\n");
+            printf("Low-Voltage flag was reseted\n");
         }
     }
 
     if (is_spd_changed) {
-        printf("Modified SPD:\n");
+        printf("\nModified SPD:\n");
         spd_print(&i, args->verbose);
         printf("\n");
         if (args->verbose)

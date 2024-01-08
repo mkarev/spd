@@ -72,12 +72,12 @@ spd-tool -i dump.bin --fix-crc -o dump.bin
 
 Установить флаг 1.35V (DDR3 -> DDR3L)
 ```
-spd-tool -i DDR3.bin --set-lp -o DDR3L.bin
+spd-tool -i DDR3.bin --set-lv -o DDR3L.bin
 ```
 
 Сбросить флаг 1.35V (DDR3L -> DDR3)
 ```
-spd-tool -i DDR3L.bin --reset-lp -o DDR3.bin
+spd-tool -i DDR3L.bin --reset-lv -o DDR3.bin
 ```
 
 Перед работой с дампом SPD, его нужно каким-либо образом получить. Далее приведены несколько скособов, как это можно сделать в домашних условиях.
@@ -154,11 +154,11 @@ f0: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff    ................
 
 Предположим, что модуль памяти подключен к программатору CH341A, который в свою очередь подключен к компьютеру, а на компьютере установлен 64-битный драйвер CH341A. Тогда, следующая команда прочитает SPD из модуля SDRAM, сбросит флаг 1.35 V, скорректирует контрольную сумму и запишет модифицированное содержимое SPD обратно в модуль SDRAM:
 ```
-spd-tool -d --reset-lp
+spd-tool -d --reset-lv
 ```
 
 При этом можно таже указать опции ```-i,-o```. Обе опции будут определять файл, в который будет ЗАПИСАН дамп SPD "до" и "после" подификации соответственно.
 
 ```
-spd-tool -d --reset-lp -i source.bin -o modified.bin
+spd-tool -d --reset-lv -i source.bin -o modified.bin
 ```
