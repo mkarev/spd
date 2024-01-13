@@ -35,12 +35,14 @@ add_subdirectory(io)
 add_executable(spd-tool "spd_tool.c")
 target_link_libraries(spd-tool PRIVATE spd io)
 if (MSVC)
+    target_sources(spd-tool PRIVATE utf8.c utf8.rc)
 	target_compile_definitions(spd-tool
         PRIVATE
 			_CRT_SECURE_NO_WARNINGS
 	)
 	add_subdirectory(getopt)
 	target_link_libraries(spd-tool PRIVATE getopt)
+    target_link_options(spd-tool PRIVATE /MANIFEST:NO)
 endif (MSVC)
 
 if (SPD_TESTS)

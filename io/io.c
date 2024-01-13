@@ -81,11 +81,11 @@ bool io_file_read(const char *path, uint8_t *data, size_t size)
 {
     FILE *f = fopen(path, "rb");
     if (!f) {
-        printf("Can't open input file: %s\n", path);
+        printf("Can't open file: %s\n", path);
         return false;
     }
     if (size != fread(data, 1, size, f)) {
-        printf("Input file too small\n");
+        printf("File too small: %s\n", path);
         fclose(f);
         return false;
     }
